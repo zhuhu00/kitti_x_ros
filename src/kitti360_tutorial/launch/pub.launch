@@ -4,6 +4,6 @@
     </node>
     <!-- <node name="pub_string" pkg="pub_sub_test" type="pub_string" output="screen">
     </node> -->
-    <node name="kittivisual" pkg="rviz" type="rviz" output="log" args="-d $(find kitti360_tutorial)/rviz/pub.rviz" />
+    <node name="kittivisual" pkg="rviz" type="rviz" output="log" args="-d $(find kitti360_tutorial)/config/pub.rviz" />
 
 </launch>

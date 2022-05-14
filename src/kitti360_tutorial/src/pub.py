@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import imp
 import cv2
 import os
 import numpy as np
@@ -9,6 +10,10 @@ from std_msgs.msg import Header
 from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge
 import sensor_msgs.point_cloud2 as pcl2
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Point
+import tf
+
 
 # Datapath = "/home/roma/Documents/00-SLAM_dataset/kitti-360/data_2d_raw/2013_05_28_drive_0000_sync/"
 
@@ -77,7 +82,38 @@ def pub_pcl(filepath, frame):
 
     # rospy.loginfo("pub PointCloud")
 
-    return 
+def pub_car(filepath, frame):
+    car_pub = rospy.Publisher('kitti360_ego_car', Marker, queue_size=10)
+    mesh_marker = Marker()
+    # mesh_marker.header.frame_id = FRAME_ID
+    mesh_marker.header.frame_id = "map"
+    mesh_marker.header.stamp = rospy.Time.now()
+
+    mesh_marker.id = -1
+    mesh_marker.lifetime = rospy.Duration()
+    mesh_marker.type = Marker.MESH_RESOURCE
+    mesh_marker.mesh_resource = "package://kitti360_tutorial/config/model/car.dae"
+
+    mesh_marker.pose.position.x = 0.0
+    mesh_marker.pose.position.y = 0.0
+    mesh_marker.pose.position.z = -1.73
+
+    q = tf.transformations.quaternion_from_euler(np.pi/2,0,  np.pi)
+    mesh_marker.pose.orientation.x = q[0]
+    mesh_marker.pose.orientation.y = q[1]
+    mesh_marker.pose.orientation.z = q[2]
+    mesh_marker.pose.orientation.w = q[3]
+
+    mesh_marker.color.r = 255
+    mesh_marker.color.g = 0
+    mesh_marker.color.b = 0
+    mesh_marker.color.a = 1.0
+
+    mesh_marker.scale.x = 0.9
+    mesh_marker.scale.y = 0.9
+    mesh_marker.scale.z = 0.9
+
+    car_pub.publish(mesh_marker)
 
 def main():
     frame=0
@@ -88,11 +124,12 @@ def main():
     Datapath = rospy.get_param("datapath")
 
     while not rospy.is_shutdown():
-        pub_img00(Datapath, bridge, frame)
-        pub_img01(Datapath, bridge, frame)
-        pub_img02(Datapath, bridge, frame)
-        pub_img03(Datapath, bridge, frame)
+        # pub_img00(Datapath, bridge, frame)
+        # pub_img01(Datapath, bridge, frame)
+        # pub_img02(Datapath, bridge, frame)
+        # pub_img03(Datapath, bridge, frame)
         pub_pcl(Datapath, frame)
+        pub_car(Datapath, frame)
 
         rate.sleep()
         frame+=1
