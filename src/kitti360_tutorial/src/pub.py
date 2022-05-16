@@ -14,106 +14,9 @@ from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
 import tf
 
+from pub_utils import *
+from readdata_utils import *
 
-# Datapath = "/home/roma/Documents/00-SLAM_dataset/kitti-360/data_2d_raw/2013_05_28_drive_0000_sync/"
-
-def pub_img00(filepath,bridge, frame):
-    img00 = cv2.imread(os.path.join(filepath,"data_2d_raw/2013_05_28_drive_0000_sync/image_00/data_rgb/%010d.png"%frame))
-
-    img00_pub = rospy.Publisher('/kitti360_img00', Image, queue_size = 10)
-    img00_frame= bridge.cv2_to_imgmsg(img00, "bgr8")
-
-    header = Header(stamp=rospy.Time.now())
-    header.frame_id = "map"
-    img00_frame.header = header
-    img00_pub.publish(img00_frame)
-    # rospy.loginfo("pub Camera")
-
-def pub_img01(filepath,bridge, frame):
-    img01 = cv2.imread(os.path.join(filepath,"data_2d_raw/2013_05_28_drive_0000_sync/image_01/data_rgb/%010d.png"%frame))
-
-    img01_pub = rospy.Publisher('/kitti360_img01', Image, queue_size = 10)
-    img01_frame= bridge.cv2_to_imgmsg(img01, "bgr8")
-
-    header = Header(stamp=rospy.Time.now())
-    header.frame_id = "map"
-    img01_frame.header = header
-    img01_pub.publish(img01_frame)
-    print(header.stamp)
-
-    # rospy.loginfo("pub Camera")
-
-def pub_img02(filepath,bridge, frame):
-    img02 = cv2.imread(os.path.join(filepath,"data_2d_raw/2013_05_28_drive_0000_sync/image_02/data_rgb/%010d.png"%frame))
-
-    img02_pub = rospy.Publisher('/kitti360_img02', Image, queue_size = 10)
-    img02_frame= bridge.cv2_to_imgmsg(img02, "bgr8")
-
-    header = Header(stamp=rospy.Time.now())
-    header.frame_id = "map"
-    img02_frame.header = header
-    img02_pub.publish(img02_frame)
-    print(header.stamp)
-
-    # rospy.loginfo("pub Fish Camera")
-
-def pub_img03(filepath,bridge, frame):
-    img03 = cv2.imread(os.path.join(filepath,"data_2d_raw/2013_05_28_drive_0000_sync/image_03/data_rgb/%010d.png"%frame))
-
-    img03_pub = rospy.Publisher('/kitti360_img03', Image, queue_size = 10)
-    img03_frame= bridge.cv2_to_imgmsg(img03, "bgr8")
-
-    header = Header(stamp=rospy.Time.now())
-    header.frame_id = "map"
-    img03_frame.header = header
-    img03_pub.publish(img03_frame)
-    print(header.stamp)
-    # rospy.loginfo("pub Fish Camera")
-
-def pub_pcl(filepath, frame):
-    pcl_data = np.fromfile(os.path.join(filepath, "data_3d_raw/2013_05_28_drive_0000_sync/velodyne_points/data/%010d.bin"%frame), dtype=np.float32).reshape(-1, 4)
-    pcl_pub = rospy.Publisher('/kitti360_pointcloud', PointCloud2, queue_size = 10)
-
-    header = Header()
-    header.stamp = rospy.Time.now()
-    header.frame_id = "map"
-    pcl_pub.publish(pcl2.create_cloud_xyz32(header, pcl_data[:,:3]))
-    print(header.stamp)
-
-    # rospy.loginfo("pub PointCloud")
-
-def pub_car(filepath, frame):
-    car_pub = rospy.Publisher('kitti360_ego_car', Marker, queue_size=10)
-    mesh_marker = Marker()
-    # mesh_marker.header.frame_id = FRAME_ID
-    mesh_marker.header.frame_id = "map"
-    mesh_marker.header.stamp = rospy.Time.now()
-
-    mesh_marker.id = -1
-    mesh_marker.lifetime = rospy.Duration()
-    mesh_marker.type = Marker.MESH_RESOURCE
-    mesh_marker.mesh_resource = "package://kitti360_tutorial/config/model/car.dae"
-
-    mesh_marker.pose.position.x = 0.0
-    mesh_marker.pose.position.y = 0.0
-    mesh_marker.pose.position.z = -1.73
-
-    q = tf.transformations.quaternion_from_euler(np.pi/2,0,  np.pi)
-    mesh_marker.pose.orientation.x = q[0]
-    mesh_marker.pose.orientation.y = q[1]
-    mesh_marker.pose.orientation.z = q[2]
-    mesh_marker.pose.orientation.w = q[3]
-
-    mesh_marker.color.r = 255
-    mesh_marker.color.g = 0
-    mesh_marker.color.b = 0
-    mesh_marker.color.a = 1.0
-
-    mesh_marker.scale.x = 0.9
-    mesh_marker.scale.y = 0.9
-    mesh_marker.scale.z = 0.9
-
-    car_pub.publish(mesh_marker)
 
 def main():
     frame=0
@@ -128,8 +31,11 @@ def main():
         # pub_img01(Datapath, bridge, frame)
         # pub_img02(Datapath, bridge, frame)
         # pub_img03(Datapath, bridge, frame)
+        imu_data = read_imu(Datapath, frame)
         pub_pcl(Datapath, frame)
         pub_car(Datapath, frame)
+        pub_imu(Datapath,frame, imu_data)
+        # pub_gps(Datapath, frame, imu_data)
 
         rate.sleep()
         frame+=1
