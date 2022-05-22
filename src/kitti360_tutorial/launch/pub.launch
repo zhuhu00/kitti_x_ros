@@ -1,6 +1,6 @@
 <launch>
     <param name = "datapath" type = "string" value = "/home/roma/Documents/00-SLAM_dataset/kitti-360/2013_05_28_drive_0000_sync/" />
-    <node name="kitti360pub" pkg="kitti360_tutorial" type="pub.py" output="screen">
+    <node name="kitti360pub" pkg="kitti360_tutorial" type="pub_main.py" output="screen">
     </node>
     <!-- <node name="pub_string" pkg="pub_sub_test" type="pub_string" output="screen">
     </node> -->

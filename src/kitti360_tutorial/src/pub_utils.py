@@ -7,7 +7,7 @@ import time
 
 import rospy
 from std_msgs.msg import Header
-from sensor_msgs.msg import Image, PointCloud2, Imu
+from sensor_msgs.msg import Image, PointCloud2, Imu, NavSatFix
 from cv_bridge import CvBridge
 import sensor_msgs.point_cloud2 as pcl2
 from visualization_msgs.msg import Marker,MarkerArray
@@ -16,6 +16,16 @@ import tf
 from readdata_utils import *
 
 FRAME_ID = "map"
+DETECTION_COLOR_DICT = {'Car':(255, 255, 0), 'Pedestrian':(0, 255, 0), 'Cyclist':(0, 0, 255), 'Van':(255, 0, 255), 'Truck':(255, 255, 255), 'Tram':(0, 255, 255), 'Misc':(255, 0, 0)}
+
+LIFETIME = 0.1
+
+
+LINES = [[0,1],[1,2],[2,3],[3,0]] # lower face
+LINES += [[4,5],[5,6],[6,7],[7,4]] # upper face
+LINES += [[4,0],[5,1],[6,2],[7,3]] # connect lower and upper
+LINES += [[4,1],[5,0]] # front face
+
 
 def pub_img00(filepath,bridge, frame):
     img00 = cv2.imread(os.path.join(filepath,"data_2d_raw/image_00/data_rgb/%010d.png"%frame))
@@ -40,7 +50,6 @@ def pub_img01(filepath,bridge, frame):
     img01_frame.header = header
     img01_pub.publish(img01_frame)
     print(header.stamp)
-
     # rospy.loginfo("pub Camera")
 
 def pub_img02(filepath,bridge, frame):
@@ -79,10 +88,9 @@ def pub_pcl(filepath, frame):
     header.frame_id = "map"
     pcl_pub.publish(pcl2.create_cloud_xyz32(header, pcl_data[:,:3]))
     print(header.stamp)
-
     # rospy.loginfo("pub PointCloud")
 
-def pub_car(filepath, frame):
+def pub_car(frame):
     """
     Publish left and right 45 degreee FOV lines and ego car model mesh
     """
@@ -145,7 +153,7 @@ def pub_car(filepath, frame):
     car_pub.publish(marker_array)
 
 def pub_imu(filepath, frame, imu_data):
-    imu_pub = rospy.Publisher('kitti360_imu', Imu, queue_size=10)
+    imu_pub = rospy.Publisher('/kitti360_imu', Imu, queue_size=10)
     
     imu  = Imu()
     imu.header.frame_id = FRAME_ID
@@ -166,7 +174,61 @@ def pub_imu(filepath, frame, imu_data):
     imu_pub.publish(imu)
 
 def pub_gps(filepath, frame, gps_data):
-    gps_pub = rospy.Publisher('kitti360_gps', NavSatFix, queue_size=10)
-    
+    gps_pub = rospy.Publisher('/kitti360_gps', NavSatFix, queue_size=10)
+    gpsmsg = NavSatFix()
+    gpsmsg.header.stamp = rospy.Time.now()
+    gpsmsg.header.frame_id = "gps"
+    gpsmsg.latitude = float(gps_data.lat)
+    gpsmsg.longitude = float(gps_data.lon)
+    gpsmsg.altitude = float(gps_data.alt)
+    gps_pub.publish(gpsmsg)
+    # gps_pub.publish(gps_data)
 
-    gps_pub.publish(gps_data)
+def pub_2dbox(filepath, bridge, frame, boxes, types):
+    img00 = cv2.imread(os.path.join(filepath,"data_2d_raw/image_00/data_rgb/%010d.png"%frame))
+
+    img00_pub = rospy.Publisher('/kitti360_img00_2dbox', Image, queue_size = 10)
+    for typ, box in zip(types, boxes):
+        top_left = int(box[0]), int(box[1])
+        bottom_right = int(box[2]), int(box[3])
+        cv2.rectangle(img00, top_left, bottom_right, DETECTION_COLOR_DICT[typ], 2)
+    img00_frame= bridge.cv2_to_imgmsg(img00, "bgr8")
+
+    header = Header(stamp=rospy.Time.now())
+    header.frame_id = "map"
+    img00_frame.header = header
+    img00_pub.publish(img00_frame)
+
+def pub_3dbox(frame, corners_3d_velos, object_types):
+    velos3dbox_pub = rospy.Publisher('/kitti360_3dbox', MarkerArray, queue_size=10)
+    marker_array = MarkerArray()
+
+    for i, corners_3d_velo in enumerate(corners_3d_velos):
+        marker = Marker()
+        marker.header.frame_id = FRAME_ID
+        marker.header.stamp = rospy.Time.now()
+
+        marker.id = i
+        marker.action = Marker.ADD
+        marker.lifetime = rospy.Duration(LIFETIME)
+        marker.type = Marker.LINE_LIST
+
+        b,g,r = DETECTION_COLOR_DICT[object_types[i]]
+        marker.color.r = r/255.0
+        marker.color.g = g/255.0
+        marker.color.b = b/255.0
+        marker.color.a = 1.0
+        marker.scale.x = 0.1
+
+        marker.points = []
+        for l in LINES:
+            p = corners_3d_velo[l[0]]
+            marker.points.append(Point(p[0], p[1], p[2]))
+            p = corners_3d_velo[l[1]]
+            marker.points.append(Point(p[0], p[1], p[2]))
+        
+
+        marker_array.markers.append(marker)
+
+    velos3dbox_pub.publish(marker_array)
+
