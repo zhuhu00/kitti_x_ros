@@ -1,0 +1,27 @@
+<launch>
+    <param name = "datapath" type = "string" value = "/home/roma/Documents/00-SLAM_dataset/kitti-360/2013_05_28_drive_0000_sync/" />
+
+    <arg name="vel_frame" default="velodyne" />
+    <arg name="imu_frame" default="imu" />
+    <arg name="world_frame" default="world" />
+
+    <node name="kitti360pub" pkg="kitti360_tutorial" type="pub_main.py" output="screen">
+        <param name="vel_frame" value="$(arg vel_frame)"/>
+        <param name="imu_frame" value="$(arg imu_frame)"/>
+        <param name="world_frame" value="$(arg world_frame)"/>
+    </node>
+
+
+    <!-- Path publisher -->
+    <node name="gps_path_pub" pkg="gps_path_pub" type="gps_path_pub" output="screen">
+
+        <param name="save_file" type="bool"   value="false" />
+        <!-- <param name="file_path" type="str"    value="/home/patrick/workspace/catkin_ws_init/src/open_vins/ov_data/rpng_ironsides/neighborhood_02.txt" /> -->
+
+        <remap from="/mti0/sensor/fix_navsat" to="/kitti360_gps" />
+
+    </node>
+
+    <node name="kittivisual" pkg="rviz" type="rviz" output="log" args="-d $(find kitti360_tutorial)/config/pub.rviz" />
+
+</launch>

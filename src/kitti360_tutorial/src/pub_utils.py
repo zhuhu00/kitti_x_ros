@@ -79,13 +79,13 @@ def pub_img03(filepath,bridge, frame):
     print(header.stamp)
     # rospy.loginfo("pub Fish Camera")
 
-def pub_pcl(filepath, frame):
+def pub_pcl(filepath, frame,vel_frame_):
     pcl_data = np.fromfile(os.path.join(filepath, "data_3d_raw/velodyne_points/data/%010d.bin"%frame), dtype=np.float32).reshape(-1, 4)
     pcl_pub = rospy.Publisher('/kitti360_point_raw', PointCloud2, queue_size = 10)
 
     header = Header()
     header.stamp = rospy.Time.now()
-    header.frame_id = "map"
+    header.frame_id = vel_frame_
     pcl_pub.publish(pcl2.create_cloud_xyz32(header, pcl_data[:,:3]))
     print(header.stamp)
     # rospy.loginfo("pub PointCloud")
@@ -177,7 +177,7 @@ def pub_gps(filepath, frame, gps_data):
     gps_pub = rospy.Publisher('/kitti360_gps', NavSatFix, queue_size=10)
     gpsmsg = NavSatFix()
     gpsmsg.header.stamp = rospy.Time.now()
-    gpsmsg.header.frame_id = "gps"
+    gpsmsg.header.frame_id = FRAME_ID
     gpsmsg.latitude = float(gps_data.lat)
     gpsmsg.longitude = float(gps_data.lon)
     gpsmsg.altitude = float(gps_data.alt)
